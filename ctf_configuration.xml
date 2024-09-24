@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<ctfConfig>
+    <competitionTime>
+        <startTime>1723181400</startTime>
+        <endTime>1723199400</endTime>
+    </competitionTime>
+    <registration>
+        <status>open</status>
+    </registration>
+</ctfConfig>

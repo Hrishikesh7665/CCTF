@@ -1,38 +1,330 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <title>CDAC CTF</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <link
-      rel="stylesheet"
-      type="text/css"
-      media="screen"
-      href="css/style.css"
-    />
-    <link rel="icon" href="/images/flag.png" />
-    <script src="/js/main.js"></script>
-    <script src="js/block.js"></script>
-  </head>
+<html lang="en">
 
-  <body>
-    <div class="background"></div>
-    <div class="foreground"></div>
-    <nav>
-      <div class="nav-container">
-        <h1>
-          <img src="/images/cdaclogo.png" style="height: 90px; width: 90px; margin-left: 0.4em; margin-top: 0.2em;" />
-        </h1>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+    content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, shrink-to-fit=no" />
+
+  <!-- Recommended Security Headers -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
+  <meta http-equiv="Access-Control-Allow-Methods" content="GET">
+  <meta http-equiv="Feature-Policy" content="geolocation 'none'; midi 'none'; camera 'none'; usb 'none'">
+
+  <title>CDAC-K CTF Challenge</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" type="text/css" href="/assets/index/css/bootstrap.min.css">
+  <!-- Icon -->
+  <link rel="stylesheet" type="text/css" href="/assets/index/fonts/line-icons.css">
+  <!-- Nivo Lightbox -->
+  <link rel="stylesheet" type="text/css" href="/assets/index/css/nivo-lightbox.css">
+  <!-- Animate -->
+  <link rel="stylesheet" type="text/css" href="/assets/index/css/animate.css">
+  <!-- Main Style -->
+  <link rel="stylesheet" type="text/css" href="/assets/index/css/main.css">
+  <!-- Responsive Style -->
+  <link rel="stylesheet" type="text/css" href="/assets/index/css/responsive.css">
+
+</head>
+
+<body>
+
+  <!-- Header Area wrapper Starts -->
+  <header id="header-wrap">
+    <!-- Navbar Start -->
+    <nav class="navbar navbar-expand-lg bg-inverse fixed-top scrolling-navbar">
+      <div id="nav-container" class="container">
+        <!-- Brand and toggle get grouped for better mobile display -->
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarCollapse"
+          aria-controls="navbarCollapse" aria-expanded="false" aria-label="Toggle navigation">
+          <i class="lni-menu"></i>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarCollapse">
+          <ul class="navbar-nav mr-auto w-100 justify-content-end">
+            <li class="nav-item active">
+              <a class="nav-link" href="#header-wrap">
+                Home
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#about">
+                About
+              </a>
+            </li>
+          </ul>
+        </div>
       </div>
     </nav>
-    <div class="main-container">
-      <div class="headings">
-        <h1>CDAC-Kolkata</h1>
-        <h2>Capture the Flag Challange</h2>
-        <a href="login.php" class="white-btn">Let's Go!</a>
-        <a href="sten.php" class="white-btn" style="margin: 10px 20px 20px 20px; padding: 20px 21px 20px 21px;">Scoreboard</a>
+    <!-- Navbar End -->
+
+    <!-- Hero Area Start -->
+    <div id="hero-area" class="hero-area-bg">
+      <div class="overlay"></div>
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-9 col-sm-12">
+            <div class="contents text-center">
+
+              <div class="banner-btn">
+                <a href="/registration/registration" id="hero-register"
+                  class="btn btn-common hero-register">Register</a>
+                <a href="/login" class="btn btn-common hero-register">Log In</a>
+                <a href="/public-scoreboard" class="btn btn-common hero-register">Scoreboard</a>
+              </div>
+              <p class="banner-info" id="message">The CTF commences on the 9th of August<br>Last date for registration
+                <span id="lastR_date"></span> ends in...
+              </p>
+              <p>
+              <p class="banner-info" id="message_title"></p>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <section id="count">
+        <div class="count-wrapper text-center">
+          <div class="time-countdown wow fadeInUp" data-wow-delay="0.2s">
+            <div id="clock" class="time-count">
+
+              <div class="count-item-main">
+                <h3 class="count-item" id="count-days">%d</h3>
+                <h4>Days</h4>
+              </div>
+              <div class="count-item-main">
+                <h3 class="count-item" id="count-hours">%h</h3>
+                <h4>Hours</h4>
+              </div>
+              <div class="count-item-main">
+                <h3 class="count-item" id="count-mins">%m</h3>
+                <h4>Minutes</h4>
+              </div>
+              <div class="count-item-main">
+                <h3 class="count-item" id="count-sec">%s</h3>
+                <h4>Seconds</h4>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      </section>
+    </div>
+    <!-- Hero Area End -->
+
+  </header>
+  <!-- Header Area wrapper End -->
+
+  <!-- About Section Start -->
+  <section id="about" class="section-padding">
+    <div class="container">
+      <div class="row">
+        <div class="col-lg-6 col-md-12 col-xs-12">
+          <div class="img-thumb">
+            <img style="border-radius: 50%; width:auto; height:400px;" class="img-fluid"
+              src="/assets/index/img/CDAC-CTF.png" alt="">
+          </div>
+        </div>
+        <div class="col-lg-6 col-md-12 col-xs-12">
+          <div class="about-content">
+            <div>
+              <div class="about-text">
+                <h2>About The CTF</h2>
+                <p>CDAC Capture The Flag is a cybersecurity competition designed and organized by Information Security
+                  Services, CDAC Kolkata in collaboration with DISA [Department of Information Security Assurance] where
+                  participants compete by solving challenges that involve finding and exploiting vulnerabilities in
+                  simulated environment.</p>
+              </div>
+              <ul class="stylish-list mb-3 hackathon_list">
+                <li><i style="color:turquoise;" class="lni-check-mark-circle"></i>Date: 09th of August, 2024
+                </li>
+                <li><i style="color:turquoise;" class="lni-check-mark-circle"></i>Who can participate: CDAC Employees
+                  and
+                  Students</li>
+                <!-- <li><i style="color:turquoise;" class="lni-check-mark-circle"></i>Cash prizes will be announced soon!</li> -->
+              </ul>
+              <a class="btn btn-common" id="second-regBtn" href="/registration/registration">Register Now!</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <!--  <div class="row">
+        <div class="col-lg-6 col-md-12 col-xs-12 order-lg-2">
+          <div class="img-thumb">
+            <embed src="/1982_23_BL_B2C_Travel_Web Application_Closure Report_09.10.2023-signed_.pdf"
+              type="application/pdf" width="500px" height="600px" style="border-radius: 10px;">
+
+          </div>
+        </div>
+        <div class="col-lg-6 col-md-12 col-xs-12 order-lg-1">
+          <div class="about-content">
+            <div>
+              <div class="about-text">
+                <h2>About The CTF Platform</h2>
+                <p>As an additional security measure, CDAC Kolkata has conducted a thorough Vulnerability Assessment and Penetration Testing (VA/PT) on the CTF platform. Several vulnerabilities were identified during Stage 1, which have since been addressed and verified. Please find the detailed report attached for your reference.</p>
+              </div>
+              <ul class="stylish-list mb-3 hackathon_list"> 
+                <li><i style="color:turquoise;" class="lni-check-mark-circle"></i>Date: 10th of August, 2024</li>
+                <li><i style="color:turquoise;" class="lni-check-mark-circle"></i>Who can participate: CDAC Employees or
+                  Students</li>
+                </ul> 
+              <a class="btn btn-common" href="/registration/registration" style="float: right;">View Document</a>
+            </div>
+          </div>
+        </div>
+      </div> -->
+
+
+
+      <div class="container mt-5 pt-5">
+        <div class="row">
+          <div class="col-12">
+            <div class="section-title-header text-center pb-0 mb-0">
+              <h2 class="section-title wow fadeInUp" data-wow-delay="0.2s">Prizes and Awards</h2>
+              <p class="wow fadeInDown" data-wow-delay="0.2s">Participants who solve at least one challenge will receive
+                a certificate of participation.</p>
+            </div>
+            <div class="prize-money text-center mt-0 pt-0">
+              <p class="wow fadeInDown" data-wow-delay="0.4s">🥇 1st Place: ₹5,000 🥇</p>
+              <p class="wow fadeInDown" data-wow-delay="0.5s">🥈 2nd Place: ₹3,000 🥈</p>
+              <p class="wow fadeInDown" data-wow-delay="0.6s">🥉 3rd Place: ₹2,000 🥉</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+  </section>
+  <!-- Prizes Section End -->
+
+  <footer>
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-lg-8 col-md-12 col-xs-12">
+
+          <div class="social-icons-footer mb-4">
+            <ul>
+              <li class="github"><a target="_blank" href="https://github.com/ISS-CDACK"><i class="lni-github"></i></a>
+              </li>
+          </div>
+          <div class="footer-links">
+            <ul>
+              <li><a href="/console.html">Console</a></li>
+              <li><a target="_blank" href="/assets/pdf/CTF_Manual.pdf">CTF Manual</a></li>
+              <li><a target="_blank" href="/assets/pdf/CTF_Faq.pdf">FAQ</a></li>
+              <li><a target="_blank" href="/assets/pdf/CDAC_CTF_Platform_Completion_Report.pdf">Security Testing
+                  Report</a></li>
+            </ul>
+          </div>
+          <div class="site-info">
+            <p>Designed and Developed by <span>CDAC(K) ISS Team</span></p>
+          </div>
+        </div>
       </div>
     </div>
-  </body>
+  </footer>
+
+  <script>
+    // Set the date we're counting down to
+    const countDownDate = new Date("Aug 8, 2024 14:59:59").getTime();
+
+    const tagLines = [
+      "Join the challenge and let the hacking begin!",
+      "Unlock the thrill of hacking prowess – join the ultimate challenge!",
+      "Dive into the arena of cyber mastery – where every keystroke shapes victory!",
+      "Embrace your cyberwarrior spirit and conquer the cybersecurity battleground!",
+      "Gear up for the ultimate cyber showdown – are you ready to dominate?",
+      "Ignite your passion for cyber warfare – become the master of your domain!",
+      "Step into the digital battlefield and emerge as a cyber champion!",
+      "Forge your path to cyber glory – the battleground awaits your command!",
+      "Channel your inner cyberwarrior and seize victory in the realm of cybersecurity!",
+      "Harness your skills and lead the charge in the cyber battleground!",
+      "Unleash your cyber prowess and defend your digital domain with honor!",
+      "Embrace the challenge and prove your mettle in the cyber arena!",
+      "Enter the realm of cyber warfare and emerge as a true cyberwarrior!",
+      "Master the art of cyber combat and rise victorious in the cyber realm!",
+      "Prepare for battle – sharpen your cyber skills and conquer the digital frontier!"
+    ];
+
+    // Update the count down every 1 second
+    let x = setInterval(function () {
+
+      // Get today's date and time
+      var now = new Date().getTime();
+
+      // Find the distance between now and the count down date
+      var distance = countDownDate - now;
+
+      // Time calculations for days, hours, minutes and seconds
+      var days = Math.floor(distance / (1000 * 60 * 60 * 24));
+      var hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      var minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+      var seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+      // Display the result in the element with id="demo"
+      document.getElementById("count-days").innerHTML = ('0' + days).substr(-2);
+      document.getElementById("count-hours").innerHTML = ('0' + hours).substr(-2);
+      document.getElementById("count-mins").innerHTML = ('0' + minutes).substr(-2);
+      document.getElementById("count-sec").innerHTML = ('0' + seconds).substr(-2);
+
+      // If the count down is finished, write some text
+      if (distance < 0) {
+        clearInterval(x);
+        document.getElementById("clock").innerHTML = "";
+        document.getElementById("message").innerHTML = "<br>";
+        document.getElementById('message_title').innerText = tagLines[Math.floor(Math.random() * tagLines.length)];
+        document.getElementById("hero-register").style.display = "none";
+        document.getElementById("second-regBtn").setAttribute("href", "/login");
+        document.getElementById("second-regBtn").innerText = "Login Now!";
+      }
+    }, 1000);
+
+    document.addEventListener('contextmenu', function (event) {
+      event.preventDefault();
+    });
+  </script>
+
+  <!-- Go to Top Link -->
+  <a href="#" class="back-to-top">
+    <i class="lni-chevron-up"></i>
+  </a>
+
+  <div id="preloader">
+    <div class="sk-circle">
+      <div class="sk-circle1 sk-child"></div>
+      <div class="sk-circle2 sk-child"></div>
+      <div class="sk-circle3 sk-child"></div>
+      <div class="sk-circle4 sk-child"></div>
+      <div class="sk-circle5 sk-child"></div>
+      <div class="sk-circle6 sk-child"></div>
+      <div class="sk-circle7 sk-child"></div>
+      <div class="sk-circle8 sk-child"></div>
+      <div class="sk-circle9 sk-child"></div>
+      <div class="sk-circle10 sk-child"></div>
+      <div class="sk-circle11 sk-child"></div>
+      <div class="sk-circle12 sk-child"></div>
+    </div>
+  </div>
+
+  <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+  <script src="/assets/index/js/jquery-min.js"></script>
+  <script src="/assets/index/js/popper.min.js"></script>
+  <script src="/assets/index/js/bootstrap.min.js"></script>
+  <script src="/assets/index/js/jquery.countdown.min.js"></script>
+  <script src="/assets/index/js/waypoints.min.js"></script>
+  <script src="/assets/index/js/jquery.counterup.min.js"></script>
+  <script src="/assets/index/js/jquery.nav.js"></script>
+  <script src="/assets/index/js/jquery.easing.min.js"></script>
+  <script src="/assets/index/js/wow.js"></script>
+  <script src="/assets/index/js/nivo-lightbox.js"></script>
+  <script src="/assets/index/js/main.js"></script>
+</body>
+
 </html>

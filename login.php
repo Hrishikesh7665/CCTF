@@ -1,351 +1,293 @@
 <?php
-    if (isset($_COOKIE['key'])) {
-        unset($_COOKIE['key']);
-        setcookie('key', '', time() - 3600, '/password_reset'); // empty value and old timestamp
-    }
-    include 'config.php';
-    if ($ldap_connection){
-        header("Location: /login_ldap.php", true, 302);
-        header("Connection: close");
-        exit;
-    }
-    require './includes/sanitizer.php';
-    session_start();
+header('Cache-Control: no-cache, must-revalidate');
 
-    if (isset($_SESSION['login_user'])) {
-        header('Location: dashboard.php');
-        die();
-    }
-    $count = 0;
-    // if ($_SERVER['REQUEST_METHOD'] == 'POST'){
-    //     die(print_r($_POST));
-    // }
-    if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login-submit'])) {
-        // $myEmail = mysqli_real_escape_string($conn, $_POST['email']);
-        $myEmail = sanitizeInput($_POST['email']);
-        // $myPassword = mysqli_real_escape_string($conn, $_POST['password']);
-        $myPassword = sanitizeInput($_POST['password']);
-        $newHash_Password = password_hash($myPassword, PASSWORD_DEFAULT);
+require_once($_SERVER['DOCUMENT_ROOT'] . '/template/head.php');
 
-        if (!strlen($myPassword) >= 4 ){
-            header('Location: /login.php');
-            die();
-        }
+if ($_loginInfo) {
+	if ($_loginInfo['role'] == 'Admin') {
+		header("Location: /admin-zone/admin-dashboard");
+		die();
+	} elseif ($_loginInfo['role'] == 'User') {
+		header("Location: /user-zone/dashboard");
+		die();
+	}
+}
 
+$loginStatus = '';
 
-        try{
-            $sql = "SELECT password FROM users WHERE email = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("s", $myEmail);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        } catch(Exception $e){
-            if ($debug_mode == true){
-                // echo $e;
-                die('debug: '.$e);
-            }
-            else{
-                echo 'error';
-                die();
-            }
-        }
-        $row = $result->fetch_assoc();
-        $count = mysqli_num_rows($result);
-        if ($count == 1) {
-            $pass = $row['password'];
-            if (password_verify($myPassword, $pass)) {
-                try{
-                    $sql = "SELECT * FROM users WHERE email = ?";
-                    $stmt = $conn->prepare($sql);
-                    $stmt->bind_param("s", $myEmail);
-                    $stmt->execute();
-                    $result = $stmt->get_result();
-                } catch(Exception $e){
-                    if ($debug_mode == true){
-                        // echo $e;
-                        die('debug: '.$e);
-                    }
-                    else{
-                        echo 'error';
-                        die();
-                    }
-                }
+// Simple Login handling
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login']) && isset($_POST['email']) && isset($_POST['password']) && isset($_POST['captcha'])) {
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/config.php');
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/common/functions.php');
 
-                $row = $result->fetch_assoc();
-                $count = mysqli_num_rows($result);
-                if ($count == 1) {
-                    if ($row['status'] == 'true') {
-                        $_SESSION['login_user'] = $myEmail;
-                        $_SESSION['role'] = $row['role'];
-                        $_SESSION['id'] = $row['id'];
-                        $_SESSION['name'] = $row['name'];
-                        if ($row['role'] == 'user') {
-                            $current_ts =  time().'+cdac_ctf_timestmap_hash';
-                            $ts_hash =  hash('crc32b', $current_ts);
-                            $u_id = $row['id'];
-                            // $sql = "INSERT INTO login_logs (users_id, time_stamp, ts_hash) VALUES (".$u_id.", CURRENT_TIMESTAMP(), '".$ts_hash."') ON DUPLICATE KEY UPDATE time_stamp=CURRENT_TIMESTAMP(), ts_hash='".$ts_hash."';";
-                            // // die($sql);
-                            // if (!$conn) {
-                            //     die('Could not connect: ' . mysqli_error());
-                            // }
+	$email = ($_POST['email']);
+	$password = ($_POST['password']);
+	$userEnteredCaptcha = ($_POST['captcha']);
 
-                            // $result = mysqli_query($conn, $sql);
+	// Verify captcha
+	if (isset($_SESSION['captcha']) && !empty($userEnteredCaptcha) && $userEnteredCaptcha === $_SESSION['captcha']) {
+		// Captcha verification passed
+		$simpleLoginResult = loginSimple($email, $password);
 
-                            // if (!$result) {
-                            //     die('Could not get data: '.$sql. mysqli_error());
-                            // }
-                            try{
-                                $sql = "INSERT INTO login_logs (users_id, time_stamp, ts_hash) VALUES (?, CURRENT_TIMESTAMP(), ?) ON DUPLICATE KEY UPDATE time_stamp=CURRENT_TIMESTAMP(), ts_hash=?";
-                                $stmt = $conn->prepare($sql);
-                                $stmt->bind_param("sss", $u_id, $ts_hash, $ts_hash);
-                                $stmt->execute();
-                                $result = $stmt->get_result();
-                            } catch(Exception $e){
-                                if ($debug_mode == true){
-                                    // echo $e;
-                                    die('debug: '.$e);
-                                }
-                                else{
-                                    echo 'error';
-                                    die();
-                                }
-                            }
+		if ($simpleLoginResult['status'] === true) {
+			// Successful login
+			if (is_null($simpleLoginResult['data']['displayPic'])) {
+				$userPic = '/assets/img/avatars/defaultAvatar.png';
+			} else {
+				$userPic = '/assets/img/avatars/' . $simpleLoginResult['data']['displayPic'];
+			}
+			setCustomSession($simpleLoginResult['data']['name'], $simpleLoginResult['data']['email'], $simpleLoginResult['data']['id'], $simpleLoginResult['data']['role'], $simpleLoginResult['data']['hash'], $simpleLoginResult['data']['profession'], $simpleLoginResult['data']['designation'], $simpleLoginResult['data']['location'], $simpleLoginResult['data']['phoneNumber'], $userPic, $simpleLoginResult['data']['auth']);
+			if ($simpleLoginResult['data']['role'] === 'admin') {
+				header('Location: /admin-zone/admin-dashboard');
+				exit();
+			} elseif ($simpleLoginResult['data']['role'] === 'user') {
+				header('Location: /user-zone/dashboard');
+				exit();
+			}
+		} else {
+			$loginStatus = array('status' => false, 'message' => $simpleLoginResult['message']);
+		}
+	} else {
+		$loginStatus = array('status' => false, 'message' => 'Captcha verification failed.');
+	}
+}
 
 
-                            // add query here
-                            $_SESSION['logid'] = $ts_hash;
-                            header('location: dashboard.php');
-                            // die('Logged in as user');
-                        } elseif ($row['role'] == 'admin') {
-                            $current_ts =  time().'+cdac_ctf_timestmap_hash';
-                            $ts_hash =  hash('crc32b', $current_ts);
-                            $u_id = $row['id'];
+//Ldap Login
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['login-ldap']) && isset($_POST['email']) && isset($_POST['password']) && isset($_POST['captcha'])) {
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/config.php');
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/common/functions.php');
 
-                            try{
-                                $sql = "INSERT INTO login_logs (users_id, time_stamp, ts_hash) VALUES (?, CURRENT_TIMESTAMP(), ?) ON DUPLICATE KEY UPDATE time_stamp=CURRENT_TIMESTAMP(), ts_hash=?";
-                                $stmt = $conn->prepare($sql);
-                                $stmt->bind_param("sss", $u_id, $ts_hash, $ts_hash);
-                                $stmt->execute();
-                                $result = $stmt->get_result();
-                            } catch(Exception $e){
-                                if ($debug_mode == true){
-                                    // echo $e;
-                                    die('debug: '.$e);
-                                }
-                                else{
-                                    echo 'error';
-                                    die();
-                                }
-                            }
+	$email = ($_POST['email']);
+	$password = ($_POST['password']);
+	$userEnteredCaptcha = ($_POST['captcha']);
 
-                            // add query here
-                            $_SESSION['logid'] = $ts_hash;
-                            header('location: admin.php');
-                            // die();
-                        } else {
-                            header('Location: success.php?p=login_failed');
-                            // die('CONTACT ADMIN [DEBUG] INVALID ROLE');
-                        }
-                    } else {
-                        header('Location: success.php?p=not_active');
-                        die();
-                    }
-                } else {
-                    //     header("location: login.php?p=login#error");
-                    //     // echo("Invalid User Category");
-                    //     echo '<script type="text/javascript">
-                    //    window.onload = function () { alert("Invalid Login"); }';
-                    header('Location: success.php?p=login_failed');
-                    die();
-                }
-            } else {
-                header('Location: success.php?p=login_failed');
-                die();
-            }
-        } else {
-            header('Location: success.php?p=login_failed');
-            die();
-        }
-    }
-    elseif ( $_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['create-account']) ) {
-        // die('test here');
-        $name = sanitizeInput($_POST['name']);
-        $email = sanitizeInput($_POST['email']);
-        $password = sanitizeInput($_POST['password']);
-        if (!strlen($password) >= 4 ){
-            header('Location: /login.php?p=signup');
-            die();
-        }
-        // $name = mysqli_real_escape_string($conn, $_POST['name']);
-        // $email = mysqli_real_escape_string($conn, $_POST['email']);
-        // $password = mysqli_real_escape_string($conn, $_POST['password']);
-        $hashed_Password = password_hash($password, PASSWORD_DEFAULT);
+	// Verify captcha
+	if (isset($_SESSION['captcha']) && !empty($userEnteredCaptcha) && $userEnteredCaptcha === $_SESSION['captcha']) {
+		// Captcha verification passed
 
-        // echo('myPassword: ' . $password);
-        // die('hashed_Password: ' . $hashed_Password);
+		try {
+			$sql = "SELECT `id`, `name`, `email`, `password`, `role`, `status`, `profession`, (SELECT list__designation.designation FROM list__designation WHERE list__designation.designation_id=users.designation) as designation, `phoneNumber`, `displayPic`, `auth_type`, `creation_ts`, (SELECT list__center.center FROM list__center WHERE list__center.center_id=users.location) as location FROM users WHERE email = ?";
+			$stmt = $conn->prepare($sql);
+			$stmt->bind_param("s", $email);
+			$stmt->execute();
+			$result = $stmt->get_result();
+			$count = mysqli_num_rows($result);
+		} catch (Exception $e) {
+			handle_error($e);
+			die();
+		}
 
-        // $sql = "SELECT `email` from `users` where `email`='$email'";
-        // $result = mysqli_query($conn, $sql);
-        // $count = mysqli_num_rows($result);
+		if ($result->num_rows > 0) {
+			// Fetch the first row
+			$row = $result->fetch_assoc();
+			$id = $row['id'];
+			$status = $row['status'];
+			$ldapStatus = loginLDAP($email, $password);
 
-
-        try{
-            $sql = "SELECT email FROM users WHERE email = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("s", $email);
-            $stmt->execute();
-            $result = $stmt->get_result();
-        } catch(Exception $e){
-            if ($debug_mode == true){
-                // echo $e;
-                die('debug: '.$e);
-            }
-            else{
-                echo 'error';
-            }
-        }
-
-        $row = $result->fetch_assoc();
-        $count = mysqli_num_rows($result);
-        // die($count);
-        if ($count == 1) {
-            header('Location: success.php?p=user_exits');
-            die();
-        } else {
-            // $sql = "INSERT INTO `users`(`name`, `email`, `password`) VALUES('$name', '$email', '$hashed_Password')";
-            // ($result = mysqli_query($conn, $sql)) or die(mysqli_error($conn));
-            try{
-                $sql = "INSERT INTO users(name, email, password) VALUES (?, ?, ?)";
-                $stmt = $conn->prepare($sql);
-                $stmt->bind_param("sss",
-                $name, $email, $hashed_Password);
-                $stmt->execute();
-                $result = $stmt->get_result();
-            } catch(Exception $e){
-                if ($debug_mode == true){
-                    // echo $e;
-                    die('debug: '.$e);
-                }
-                else{
-                    echo 'error';
-                    die();
-                }
-            }
-
-            header('Location: success.php?p=new_account');
-            die();
-        }
-    }
-    // elseif ( $_SERVER['REQUEST_METHOD'] == 'POST'){
-    // die(print_r($_POST));}
-
-    $LOGIN = 'login';
-    $SIGNUP = 'signup';
-    $current_page = null; //redirect to login page //set the current page to login or sign up based on the param
-    if (isset($_GET['p']) && $_GET['p'] == 'login') {
-        $current_page = $LOGIN;
-    } elseif (isset($_GET['p']) && $_GET['p'] == 'signup') {
-        $current_page = $SIGNUP;
-    } else {
-        // header('Location: success.php');
-        header('Location: login.php?p=login');
-        die();
-    }
+			if ($ldapStatus['status']) {
+				// Ldap auth successful
+				if ($row['status'] == 'true') {
+					$logEntry = insertLog($conn, $row['id'], 'Login Success');
+					if ($logEntry['status'] === true) {
+						$user = array(
+							'data' => array(
+								'name' => $row['name'],
+								'id' => $id,
+								'role' => $row['role'],
+								'email' => $row['email'],
+								'profession' => $row['profession'],
+								'designation' => $row['designation'],
+								'location' => $row['location'],
+								'phoneNumber' => $row['phoneNumber'],
+								'displayPic' => $row['displayPic'],
+								'auth' => $row['auth_type'],
+								'hash' => $logEntry['hash']
+							)
+						);
+						if (is_null($user['data']['displayPic'])) {
+							$userPic = '/assets/img/avatars/defaultAvatar.png';
+						} else {
+							$userPic = '/assets/img/avatars/' . $user['data']['displayPic'];
+						}
+						setCustomSession($user['data']['name'], $user['data']['email'], $user['data']['id'], $user['data']['role'], $user['data']['hash'], $user['data']['profession'], $user['data']['designation'], $user['data']['location'], $user['data']['phoneNumber'], $userPic, $user['data']['auth']);
+						if ($user['data']['role'] === 'admin') {
+							header('Location: /admin-zone/admin-dashboard');
+							exit();
+						} elseif ($user['data']['role'] === 'user') {
+							header('Location: /user-zone/dashboard');
+							exit();
+						}
+					} else {
+						$loginStatus = array('status' => false, 'message' => 'Add to log failed');
+					}
+				} else {
+					insertLog($conn, $row['id'], 'Login Attempted While User Not Activated');
+					$loginStatus = array('status' => false, 'message' => 'User not active');
+				}
+			} else if ($ldapStatus['status'] === 'LDAP authentication failed') {
+				insertLog($conn, $id, 'Invalid login Attempt');
+				$loginStatus = array('status' => false, 'message' => 'Invalid email or password');
+			} else {
+				$loginStatus = array('status' => false, 'message' => $ldapStatus['message']);
+			}
+		} else {
+			$loginStatus = array('status' => false, 'message' => 'Invalid email or password');
+		}
+	} else {
+		$loginStatus = array('status' => false, 'message' => 'Captcha verification failed.');
+	}
+}
 ?>
 
-<!DOCTYPE html>
-<html>
+<body class="spin-lock">
+	<!-- Navbar -->
+	<?php
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/template/navbar.php');
+	require_once $_SERVER["DOCUMENT_ROOT"] . "/template/loadingSpinner.php";
+	?>
+	<!-- / Navbar -->
 
-    <head>
-    <?php include 'includes/header.php';?>
-    </head>
+	<div class="position-relative" style="height:calc(95vh - 70px)">
+		<div class="authentication-wrapper authentication-basic login">
+			<div class="authentication-inner">
 
-    <style>
-    #snackbar {
-    visibility: hidden;
-    min-width: 250px;
-    /* margin: auto; */
-    /* margin-left: -125px; */
-    background-color: #ff4d4d;
-    color: #fff;
-    text-align: center;
-    border-radius: 2px;
-    padding: 16px;
-    position: fixed;
-    z-index: 1;
-    /* left: 50%; */
-    bottom: 30px;
-    font-size: 17px;
-    }
+				<!-- Login -->
+				<div class="row">
+					<div class="col">
+						<div class="card">
 
-    #snackbar.show {
-    visibility: visible;
-    -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
-    animation: fadein 0.5s, fadeout 0.5s 2.5s;
-    }
+							<div class="card-header overflow-hidden">
+								<ul class="nav nav-tabs justify-content-center" role="tablist">
+									<li class="nav-item">
+										<button id="student-tab" class="nav-link active" data-bs-toggle="tab" data-bs-target="#login-tabs-student" role="tab" aria-selected="true">
+											<span class="ri-user-line ri-20px d-sm-none"></span><span class="d-none d-sm-block">Student Login</span>
+										</button>
+									</li>
+									<li class="nav-item">
+										<button id="employee-tab" class="nav-link" data-bs-toggle="tab" data-bs-target="#login-tabs-employee" role="tab" aria-selected="false">
+											<span class="ri-folder-user-line ri-20px d-sm-none"></span><span class="d-none d-sm-block">Employee Login</span>
+										</button>
+									</li>
+								</ul>
+							</div>
 
-    @-webkit-keyframes fadein {
-    from {bottom: 0; opacity: 0;}
-    to {bottom: 30px; opacity: 1;}
-    }
 
-    @keyframes fadein {
-    from {bottom: 0; opacity: 0;}
-    to {bottom: 30px; opacity: 1;}
-    }
+							<div class="tab-content p-1">
+								<div class="tab-pane fade active show" id="login-tabs-student" role="tabpanel">
+									<div class="card-body pt-0">
+										<form id="formStudentAuthentication" class="mb-3" action="<?php echo pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME); ?>" method="POST" role="form">
+											<div class="form-floating form-floating-outline mb-3">
+												<input type="text" class="form-control" id="student-email" name="email" placeholder="Enter your email address" autocomplete="nope" required />
+												<label for="student-email">Email</label>
+											</div>
+											<div class="mb-3">
+												<div class="form-password-toggle">
+													<div class="input-group input-group-merge">
+														<div class="form-floating form-floating-outline">
+															<input type="password" id="student-password" class="form-control" name="password" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" aria-describedby="student-password" autocomplete="false" required />
+															<label for="student-password">Password</label>
+														</div>
+														<span class="input-group-text cursor-pointer"><i class="mdi mdi-eye-off-outline"></i></span>
+													</div>
+												</div>
+											</div>
+											<!-- captcha -->
+											<div class="mb-2">
+												<label for="student-captcha" class="fw-bold">Captcha Image</label>
+												<div class="d-flex align-items-center">
+													<img src="/captcha" alt="Captcha" id="student-captchaImage" class="me-2">
+													<button type="button" onclick="reloadCaptcha('student-captchaImage')" class="btn btn-link">
+														<i class="mdi mdi-reload"></i>
+													</button>
+												</div>
+											</div>
+											<div class="form-floating form-floating-outline mb-2">
+												<input type="text" class="form-control" id="student-captcha" name="captcha" placeholder="Enter the captcha" autocomplete="off" required>
+												<label for="student-captcha">Captcha</label>
+											</div>
+											<!-- captcha -->
+											<div class="mb-2 d-flex justify-content-center">
+												<a href="/reset-password" class="float-end mb-1" id="student-forgotPassword">
+													<span>Forgot Password?</span>
+												</a>
+											</div>
+											<div class="mb-1">
+												<button class="btn btn-primary d-grid w-100" type="submit">Sign in</button>
+											</div>
+										</form>
+									</div>
+								</div>
 
-    @-webkit-keyframes fadeout {
-    from {bottom: 30px; opacity: 1;}
-    to {bottom: 0; opacity: 0;}
-    }
+								<div class="tab-pane fade" id="login-tabs-employee" role="tabpanel">
+									<div class="card-body pt-0">
+										<form id="formEmployeeAuthentication" class="mb-3" action="<?php echo pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME); ?>" method="POST" role="form">
+											<div class="form-floating form-floating-outline mb-3">
+												<input type="text" class="form-control" id="employee-email" name="email" placeholder="Enter your email address" autocomplete="nope" required />
+												<label for="employee-email">Email</label>
+											</div>
+											<div class="mb-3">
+												<div class="form-password-toggle">
+													<div class="input-group input-group-merge">
+														<div class="form-floating form-floating-outline">
+															<input type="password" id="employee-password" class="form-control" name="password" placeholder="&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;&#xb7;" aria-describedby="employee-password" autocomplete="false" required />
+															<label for="employee-password">Password</label>
+														</div>
+														<span class="input-group-text cursor-pointer"><i class="mdi mdi-eye-off-outline"></i></span>
+													</div>
+												</div>
+											</div>
+											<!-- captcha -->
+											<div class="mb-2">
+												<label for="employee-captcha" class="fw-bold">Captcha Image</label>
+												<div class="d-flex align-items-center">
+													<img src="" alt="Captcha" id="employee-captchaImage" class="me-2">
+													<button type="button" onclick="reloadCaptcha('employee-captchaImage')" class="btn btn-link">
+														<i class="mdi mdi-reload"></i>
+													</button>
+												</div>
+											</div>
+											<div class="form-floating form-floating-outline mb-3">
+												<input type="text" class="form-control" id="employee-captcha" name="captcha" placeholder="Enter the captcha" autocomplete="off" required>
+												<label for="employee-captcha">Captcha</label>
+											</div>
+											<!-- captcha -->
+											<!-- <div class="mb-3 d-flex justify-content-between"> -->
+											<!-- <a href="/reset-password" class="float-end mb-1" id="employee-forgotPassword"> -->
+											<!-- <span>Forgot Password?</span> -->
+											<!-- </a> -->
+											<!-- </div> -->
+											<div class="mb-2">
+												<button class="btn btn-primary d-grid w-100" type="submit">Sign in</button>
+											</div>
+										</form>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<img src="/assets/img/CDAC-CTF.png" alt="cdacCTF-Logo" class="authentication-image-object-left d-none d-lg-block login-logo-container-img">
+			</div>
+		</div>
+	</div>
 
-    @keyframes fadeout {
-    from {bottom: 30px; opacity: 1;}
-    to {bottom: 0; opacity: 0;}
-    }
-    </style>
+	<!-- toast & modal-->
+	<?php
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/template/toast.php');
+	?>
 
-    <body>
-        <div class="background"></div>
-        <div class="foreground"></div>
-        <nav>
-            <div class="nav-container">
-                <h1>
-                    <img src="/images/cdaclogo.png" style="height: 90px; width: 90px; margin-left: 0.4em; margin-top: 0.2em;" />
-                </h1>
-            </div>
-        </nav>
+	<!-- Footer -->
+	<?php
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/template/footer.php');
+	?>
+	<!-- / Footer -->
 
-        <div class="main-container">
-            <div class="login-card">
-                <div class="tabs">
-                    <ul>
-                        <?php if ($current_page == $LOGIN) {
-                            echo '<li><a href="login.php?p=login" class="active">Login</a></li>';
-                            echo '<li><a href="login.php?p=signup">Sign Up</a></li>';
-                        } elseif ($current_page == $SIGNUP) {
-                            echo '<li><a href="login.php?p=login">Login</a></li>';
-                            echo '<li><a href="login.php?p=signup"  class="active">Sign Up</a></li>';
-                        } ?>
-                    </ul>
-                </div>
-                <?php if ($current_page == $LOGIN) {
-                    include 'includes/login.php';
-                } elseif ($current_page == $SIGNUP) {
-                    include 'includes/signup.php';
-                } ?>
-            </div>
-            <div id="snackbar">First</div>
-        </div>
-    <script>
-        function myFunction(s) {
-        var x = document.getElementById("snackbar");
-        var text = document.createTextNode(s);
-        x.textContent = '';
-        x.appendChild(text);
-        x.className = "show";
-        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 3000);
-        }
-    </script>
-    </body>
-</html>
+	<!-- scripts -->
+	<?php
+	require_once($_SERVER['DOCUMENT_ROOT'] . '/template/scripts-section.php');
+	if ($loginStatus != '') {
+		echo "<script type='text/javascript'>showToast(5000, 'mdi-alert-circle', 'animate__shakeX', 'text-danger', 'Try Again!!', '" . $loginStatus['message'] . "');</script>";
+	}
+	?>
+</body>

@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="utf-8" />
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+	<!-- Recommended Security Headers -->
+	<meta http-equiv="X-Content-Type-Options" content="nosniff">
+	<meta http-equiv="X-XSS-Protection" content="1; mode=block">
+	<meta name="referrer" content="no-referrer">
+	<meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
+	<meta http-equiv="Access-Control-Allow-Methods" content="GET">
+	<meta http-equiv="Feature-Policy" content="geolocation 'none'; midi 'none'; camera 'none'; usb 'none'">
+
+	<title>Terminal | CDAC CTF Challenge</title>
+
+	<!-- Favicon -->
+	<link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+
+	<style>
+		body {
+			margin: 0;
+			padding: 15px 20px;
+			min-height: 99%;
+			width: 100%;
+			min-width: 550px;
+			font-family: 'Courier New', monospace;
+			overflow-x: hidden;
+		}
+
+		.watermark {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			opacity: 0.1;
+			pointer-events: none;
+			z-index: 1000;
+		}
+
+		.watermark img {
+			max-width: 100%;
+			max-height: 100%;
+			display: block;
+		}
+
+		.certificate-info {
+			line-height: 0.9;
+			color: #e0e0e0;
+			margin-top: 12px;
+		}
+
+		.certificate-info div {
+			display: block;
+			margin-bottom: 12px;
+		}
+
+		.certificate-info div:last-child {
+			margin-bottom: 0;
+		}
+
+		.certificate-info strong {
+			display: inline-block;
+			width: 200px;
+			color: #9cdcfe;
+		}
+
+		#page {
+			color: var(--text-color);
+			background: var(--bg-color);
+		}
+
+		::selection {
+			color: var(--bg-color);
+			background-color: var(--selection-color);
+		}
+
+		::-moz-selection {
+			color: var(--bg-color);
+			background-color: var(--selection-color);
+		}
+
+		textarea {
+			left: -1000px;
+			position: absolute;
+		}
+
+		b {
+			font-weight: bold;
+			text-decoration: underline;
+		}
+
+		/* Cursor Start */
+		.cursor {
+			font-size: 12px;
+			color: var(--cursor-color);
+			background-color: var(--cursor-color);
+			position: relative;
+			opacity: 1;
+			height: 1.5em;
+			width: 10px;
+			max-width: 10px;
+			transform: translateY(4px);
+			overflow: hidden;
+			text-indent: -5px;
+			display: inline-block;
+			text-decoration: blink;
+			animation: blinker 1s linear infinite;
+		}
+
+		@keyframes blinker {
+			50% {
+				opacity: 0;
+			}
+		}
+
+		#command {
+			cursor: text;
+			height: 50px;
+			color: var(--command-color);
+		}
+
+		#liner {
+			line-height: 1.3em;
+			margin-top: -2px;
+			animation: show 0.5s ease forwards;
+			animation-delay: 1.2s;
+			opacity: 0;
+		}
+
+		.liner {
+			color: var(--liner-color);
+		}
+
+		#liner::before {
+			color: var(--liner-color);
+			content: 'guest@ctf.cdac.in:~$';
+		}
+
+		@keyframes show {
+			from {
+				opacity: 0;
+			}
+
+			to {
+				opacity: 1;
+			}
+		}
+
+		/* Cursor End */
+		p {
+			display: block;
+			line-height: 1.3em;
+			margin: 0;
+			overflow: hidden;
+			white-space: nowrap;
+			margin: 0;
+			letter-spacing: 0.05em;
+			animation: typing 0.5s steps(30, end);
+		}
+
+		.no-animation {
+			animation: typing 0 steps(30, end);
+		}
+
+		.margin {
+			margin-left: 20px;
+		}
+
+		@keyframes typing {
+			from {
+				width: 0;
+			}
+
+			to {
+				width: 100%;
+			}
+		}
+
+		.index {
+			color: var(--index-color);
+		}
+
+		.color2 {
+			color: var(--color2-color);
+		}
+
+		.red {
+			color: var(--red-color);
+		}
+
+		.command {
+			color: var(--cmd-color);
+			text-shadow: 0 0 5px var(--cmd-shadow);
+		}
+
+		.error {
+			color: var(--error-color);
+		}
+
+		.inherit,
+		a {
+			color: var(--link-color);
+		}
+
+		a {
+			text-decoration: inherit;
+		}
+
+		a:hover {
+			background-color: var(--link-hover-bg);
+			color: var(--link-hover-color);
+		}
+
+		a:focus {
+			outline: 0;
+		}
+
+		@media (max-width: 820px) {
+			#page * {
+				font-size: 14px;
+			}
+		}
+
+		@media (max-width: 720px) {
+			#page * {
+				font-size: 12px;
+			}
+		}
+
+		@media (max-width: 613px) {
+			#page * {
+				font-size: 15px;
+			}
+		}
+
+		:root {
+			/* default dark mode */
+			--text-color: #73abad;
+			--bg-color: #211d1b;
+			--selection-color: #519975;
+			--cursor-color: #73abad;
+			--command-color: #73abad;
+			--liner-color: #519975;
+			--index-color: #dcdccc;
+			--color2-color: #b89076;
+			--red-color: #D22B2B;
+			--cmd-color: #73abad;
+			--cmd-shadow: #73abad;
+			--error-color: #b89076;
+			--link-color: #9c8394;
+			--link-hover-color: #519975;
+			--link-hover-bg: #211d1b;
+		}
+	</style>
+</head>
+
+<body data-theme="" id="page">
+	<div class="watermark">
+		<img src="/assets/img/CDAC-CTF.png" alt="Watermark">
+	</div>
+	<div id="terminal">
+		<a id="before"></a>
+	</div>
+	<div id="command" onclick="$('texter').focus();">
+		<textarea type="text" id="texter" onkeyup="typeIt(this, event)"
+			onkeydown="typeIt(this, event); moveIt(this.value.length, event)" onkeypress="typeIt(this, event);"
+			autofocus></textarea>
+		<div id="liner">
+			<span id="typer"></span><b class="cursor" id="cursor">█</b>
+		</div>
+	</div>
+
+	<script>
+		function $(elid) {
+			return document.getElementById(elid);
+		}
+
+		var cursor;
+		window.onload = init;
+
+		function init() {
+			cursor = $('cursor');
+			cursor.style.left = '0px';
+		}
+
+		function nl2br(txt) {
+			return txt.replace(/\n/g, '');
+		}
+
+		function typeIt(from, e) {
+			e = e || window.event;
+			var w = $('typer');
+			var tw = from.value;
+			w.innerHTML = nl2br(tw);
+		}
+
+		function moveIt(count, e) {
+			e = e || window.event;
+			var keycode = e.keyCode || e.which;
+			if (keycode == 37 && parseInt(cursor.style.left) >= 0 - (count - 1) * 10) {
+				cursor.style.left = parseInt(cursor.style.left) - 10 + 'px';
+			} else if (keycode == 39 && parseInt(cursor.style.left) + 10 <= 0) {
+				cursor.style.left = parseInt(cursor.style.left) + 10 + 'px';
+			}
+		}
+
+		// function alert(txt) {
+		// console.log(txt);
+		// }
+
+		async function replaceTextInParagraphs(searchText, replaceText, delay = 1000, classList = []) {
+			// Wait for the specified delay
+			await new Promise(resolve => setTimeout(resolve, delay));
+
+			// Select all <p> elements or those with specified classes
+			const paragraphs = classList.length > 0
+				? classList.flatMap(cls => Array.from(document.querySelectorAll(`p.${cls}`)))
+				: document.querySelectorAll('p');
+
+			// Iterate over all selected <p> elements
+			paragraphs.forEach(paragraph => {
+				// Replace text within the element's innerHTML
+				let html = paragraph.innerHTML;
+				let newHtml = html.replace(new RegExp(searchText, 'g'), replaceText);
+				if (html !== newHtml) {
+					// Update the innerHTML only if a replacement occurred
+					paragraph.innerHTML = newHtml;
+
+					// Replace class if the classList is provided
+					if (classList.length > 0) {
+						classList.forEach(cls => paragraph.classList.replace(cls, 'red'));
+					}
+				}
+			});
+		}
+
+		let issGithub = 'https://github.com/iss-cdack';
+		let hrishiGithub = 'https://github.com/hrishikesh7665';
+		let shabdikGithub = 'https://github.com/ninja-hattori';
+		let hrishiLn = 'https://www.linkedin.com/in/hrishikesh7665';
+		let shabdikLn = 'https://www.linkedin.com/in/shabdik';
+		let email = 'mailto:ctf-kol@cdac.in';
+		let existCommands = ['banner', 'clear', 'cls', 'date', 'email', 'help', 'history', 'social', 'developers', 'verify_certificate', 'home'];
+
+		social = [
+			'ISS Team GitHub           <a href="' + issGithub + '" target="_blank">github/iss-cdack</a>',
+			'Hrishikesh GitHub         <a href="' + hrishiGithub + '" target="_blank">github/hrishikesh7665</a>',
+			'Shabdik GitHub            <a href="' + shabdikGithub + '" target="_blank">github/ninja-hattori</a>',];
+
+		ls = ['<span class=\"command\">verify_certificate</span>',];
+
+		developers = [
+			'Hrishikesh Patra (ISS Team)         <a href="' + hrishiGithub + '" target="_blank">github/hrishikesh7665</a>         <a href="' + hrishiLn + '" target="_blank">linkedin/in/hrishikesh7665</a>',
+			'Shabdik Chakraborty (ISS Team)      <a href="' + shabdikGithub + '" target="_blank">github/ninja-hattori</a>          <a href="' + shabdikLn + '" target="_blank">linkedin/in/shabdik</a>',];
+
+		verify_certificate = ['Usage: verify_certificate [arg]', 'Args:', '-cn: certificate number to verify', 'Example:', '  verify_certificate CCTF/0202020202', '  verify_certificate -cn CCTF/0202020202',];
+
+		help = [
+			'<span class="command">home</span>               Go to the main page',
+			'<span class="command">banner</span>             Display the header',
+			'<span class="command">clear | cls</span>        Clear the teminal',
+			'<span class="command">date</span>               Display the actual date',
+			'<span class="command">email</span>              Send me an email',
+			'<span class="command">help</span>               Check available commands',
+			'<span class="command">history</span>            View command history',
+			'<span class="command">ls</span>                 View files and directories',
+			'<span class="command">social</span>             Display social networks',
+			'<span class="command">developers</span>         Display developers details',
+			'<br>',
+			'[TAB]              Trigger completion',
+			'[Ctrl+l]           Clear terminal',
+			'[Ctrl+p]           Go back to previous command',
+		];
+
+		banner = [
+			"  .d8888b.  8888888b.        d8888  .d8888b.         .d8888b. 88888888888 8888888888 ",
+			'd88P  Y88b 888  "Y88b       d88888 d88P  Y88b       d88P  Y88b    888     888        ',
+			"888    888 888    888      d88P888 888    888       888    888    888     888        ",
+			"888        888    888     d88P 888 888              888           888     8888888    ",
+			"888        888    888    d88P  888 888              888           888     888        ",
+			"888    888 888    888   d88P   888 888    888       888    888    888     888        ",
+			"Y88b  d88P 888  .d88P  d8888888888 Y88b  d88P       Y88b  d88P    888     888 		  ",
+			'  "Y8888P" 8888888P"  d88P     888  "Y8888P"         "Y8888P"     888     888 <span style="font-size:25px;"> Platform (2.0)</span>',
+			'              <span class="color2" style="font-size:18.5px;">Developed & Maintained by CDAC Kolkata ISS Team</span>',
+			'&nbsp;',
+			'<span class="color2">For a list of available commands, type</span> <span class="command">\'help\'</span><span class="color2">.</span>',
+			"<span class=\"color2\">For verify certificate type '</span><span class=\"command\">verify_certificate</span><span class=\"color2\"> &lt;cert_no&gt;'</span>",
+		];
+
+		let before = document.getElementById('before');
+		let liner = document.getElementById('liner');
+		let command = document.getElementById('typer');
+		let textarea = document.getElementById('texter');
+		let terminal = document.getElementById('terminal');
+		let lastTab;
+		let waitingText = 'Wait while fetching details....';
+
+		let commands = [];
+		let git = 0;
+
+		const currentTheme = "dark";
+		document.body.dataset.theme = currentTheme;
+
+		setTimeout(function () {
+			loadBanner();
+			textarea.focus();
+		}, 100);
+
+		textarea.addEventListener('blur', function () {
+			setTimeout(function () {
+				textarea.focus();
+			}, 20);
+		});
+
+		window.addEventListener('keyup', enterKey);
+		window.addEventListener('keydown', keyDown);
+
+		textarea.value = '';
+		command.innerHTML = textarea.value;
+
+		function keyDown(e) {
+			if (e.ctrlKey && e.key == 'l') {
+				e.preventDefault();
+				cls();
+			}
+			if (e.ctrlKey && e.key == 'p') {
+				e.preventDefault();
+				previousCMD();
+			}
+			if (e.ctrlKey && e.key == 'u') {
+				e.preventDefault();
+				deleteCMD();
+			}
+			if (e.key === 'Tab') {
+				e.preventDefault();
+				let now = new Date().getTime();
+				let timesince = now - lastTab;
+				if (timesince < 600 && timesince > 0) {
+					showComplete(command.innerHTML.toLowerCase());
+				} else {
+					autoComplete();
+				}
+				lastTab = new Date().getTime();
+			}
+		}
+
+		function enterKey(e) {
+			if (e.keyCode == 13) {
+				commands.push(command.innerHTML);
+				git = commands.length;
+				addLine(
+					'guest@ctf.cdac.in:~$ <span class="command">' +
+					command.innerHTML +
+					'</span>',
+					'liner no-animation',
+					0
+				);
+				commander(command.innerHTML.toLowerCase());
+				command.innerHTML = '';
+				textarea.value = '';
+			}
+			if (e.keyCode == 38 && git != 0) {
+				previousCMD();
+			}
+			if (e.keyCode == 40 && git != commands.length) {
+				git += 1;
+				if (commands[git] === undefined) {
+					textarea.value = '';
+				} else {
+					textarea.value = commands[git];
+				}
+				command.innerHTML = textarea.value;
+			}
+		}
+
+		function commander(cmd) {
+			// Helper function to handle the 'verify_certificate' command variations
+			const handleVerifyCertificate = (cmd) => {
+				const trimmedCmd = cmd.trim();
+				const helpPattern = /^(?:\.\/|\.\\|\.|)\bverify_certificate\b\s*(--help|-h)$/i;
+
+				if (helpPattern.test(trimmedCmd)) {
+					loopLines(verify_certificate, 'color2', 80);
+				} else {
+					// Split the command by spaces to isolate parts
+					const parts = trimmedCmd.split(/\s+/);
+
+					// Check if the command is in the correct format
+					if (parts.length === 2 && /^verify_certificate$/i.test(parts[0])) {
+						let lastPart = parts[1];
+
+						// Remove surrounding quotes if they exist
+						if (/^['"]CCTF\/\d{10}['"]$/i.test(lastPart)) {
+							lastPart = lastPart.slice(1, -1);
+						}
+
+						if (/^CCTF\/\d{10}$/i.test(lastPart)) {
+							fetchCertDetails(lastPart);
+							return;
+						}
+					} else if (parts.length === 3 && /^verify_certificate$/i.test(parts[0]) && /^-cn$/i.test(parts[1])) {
+						let lastPart = parts[2];
+
+						// Remove surrounding quotes if they exist
+						if (/^['"]CCTF\/\d{10}['"]$/i.test(lastPart)) {
+							lastPart = lastPart.slice(1, -1);
+						}
+
+						if (/^CCTF\/\d{10}$/i.test(lastPart)) {
+							fetchCertDetails(lastPart);
+							return;
+						}
+					}
+
+					loopLines(['Missing argument or invalid input.'], 'red', 100);
+					loopLines(verify_certificate, 'color2', 80);
+				}
+			};
+
+			// Example function that will be called with the CCTF value
+			async function fetchCertDetails(certNo) {
+				loopLinesCustom([waitingText], 'color2', 80);
+				try {
+					let response = await fetch('/api/checkCert', {
+						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify({ certNo: certNo })
+					});
+
+					if (!response.ok) {
+						throw new Error('Network response was not ok');
+					}
+
+					let result = await response.json();
+					if (result.status && result.data && Object.keys(result.data).length > 0) {
+						const data = result.data;
+						const showCertData = [
+							`
+					<div class="certificate-info">
+						<div><strong>Participant Name:</strong> ${data.name}</div>
+						<div><strong>Participant Email:</strong> ${data.email}</div>
+						<div><strong>Participant Rank:</strong> ${data.rank}</div>
+						<div><strong>Certificate No:</strong> ${(data.certNo).toUpperCase()}</div>
+						<div><strong>Certificate Status:</strong><span style='color: ${data.certStatus === "Verified" ? "green" : "yellow"}'> ${data.certStatus}</span></div>
+						<div><strong>CTF Date:</strong> ${data.ctf_date}</div>
+						<div><strong>Issued At:</strong> ${data.issuedDate}</div>
+					</div>
+					`
+						];
+						loopLines(showCertData, 'color2', 150);
+						replaceTextInParagraphs(waitingText, 'Certificate details fetched successfully', 500);
+
+					} else {
+						replaceTextInParagraphs(waitingText, error.message, 500, ['color2']);
+					}
+
+				} catch (error) {
+					// console.error(error.message);
+					replaceTextInParagraphs(waitingText, 'Error occurred while fetching certificate data for cert no \'' + certNo.replace(/['"]/g, "").toUpperCase() + '\'.', 500, ['color2']);
+				}
+			}
+
+			// CCTF/0202020202
+
+			switch (true) {
+				case cmd === 'banner':
+					loadBanner();
+					break;
+				case cmd === 'clear' || cmd === 'cls':
+					cls();
+					break;
+				case cmd === 'date':
+					getDate();
+					break;
+				case cmd === 'email':
+					addLine(
+						'Opening mailto:<a href="mailto:ctf-kol@cdac.in">ctf-kol@cdac.in</a>...',
+						'color2',
+						80
+					);
+					newTab(email);
+					break;
+				case cmd === 'help':
+					loopLines(help, 'color margin', 80);
+					break;
+				case cmd === 'home':
+					window.setTimeout("location.href='/'","1500");
+					break;
+				case cmd === 'history':
+					addLine('<br>', '', 0);
+					loopLines(commands, 'color2', 80);
+					addLine('<br>', 'command', 80 * commands.length + 50);
+					break;
+				case cmd === 'ls':
+					loopLines(ls, 'color2 margin', 80);
+					break;
+				case cmd === 'social':
+					loopLines(social, 'color margin', 80);
+					break;
+				case cmd === 'developers':
+					loopLines(developers, 'color margin', 80);
+					break;
+				case cmd.trim().startsWith('verify_certificate '):
+				case cmd.trim().startsWith('./verify_certificate '):
+				case cmd.trim().startsWith('.\\verify_certificate '):
+				case cmd.trim().startsWith('.verify_certificate '):
+					handleVerifyCertificate(cmd);
+					break;
+				case cmd.trim().startsWith('verify_certificate'):
+				case cmd.trim().startsWith('./verify_certificate'):
+				case cmd.trim().startsWith('.\\verify_certificate'):
+				case cmd.trim().startsWith('.verify_certificate'):
+					loopLines(verify_certificate, 'color2', 80);
+					break;
+				default:
+					addLine(
+						'<span>Command not found. For a list of commands, type <span class="command">\'help\'</span>.</span>',
+						'error',
+						100
+					);
+					break;
+			}
+		}
+
+
+		function newTab(link) {
+			setTimeout(function () {
+				window.open(link, '_blank');
+			}, 500);
+		}
+
+		function addLine(text, style, time) {
+			let t = '';
+			for (let i = 0; i < text.length; i++) {
+				if (text.charAt(i) == ' ' && text.charAt(i + 1) == ' ') {
+					t += '&nbsp;&nbsp;';
+					i++;
+				} else {
+					t += text.charAt(i);
+				}
+			}
+			setTimeout(function () {
+				let next = document.createElement('p');
+				next.innerHTML = t;
+				next.className = style;
+
+				before.parentNode.insertBefore(next, before);
+
+				window.scrollTo(0, document.body.offsetHeight);
+			}, time);
+		}
+
+		function loopLines(name, style, timeout) {
+			name = [...name, '<br>'];
+			name.forEach((item, index) => {
+				addLine(item, style, index * timeout);
+			});
+		}
+
+		function loopLinesCustom(name, style, timeout) {
+			name = [...name];
+			name.forEach((item, index) => {
+				addLine(item, style, index * timeout);
+			});
+		}
+
+		function loadBanner() {
+			let logo_banner = banner;
+			loopLines(logo_banner, '', 80);
+		}
+
+		function cls() {
+			setTimeout(function () {
+				terminal.innerHTML = '<a id="before"></a>';
+				before = document.getElementById('before');
+			}, 1);
+		}
+
+		function previousCMD() {
+			if (git != 0) {
+				git -= 1;
+				textarea.value = commands[git];
+				command.innerHTML = textarea.value;
+			}
+		}
+
+		function deleteCMD() {
+			command.value = '';
+			textarea.value = '';
+		}
+
+		function getDate() {
+			loopLines([new Date().toString()], 'color margin', 80);
+		}
+
+		function showComplete(cmd) {
+			let array = existCommands.filter((item) => item.startsWith(cmd));
+			if (array.length > 1) {
+				addLine(
+					'guest@ctf.cdac.in:~$ <span class="command">' +
+					command.innerHTML +
+					'</span>',
+					'liner no-animation',
+					0
+				);
+				loopLines([array.join(', ')], 'color margin', 80);
+			}
+		}
+
+		function autoComplete() {
+			let arr = existCommands.filter((item) =>
+				item.startsWith(command.innerHTML.toLowerCase())
+			);
+			if (arr.length === 1) {
+				textarea.value = arr[0];
+				command.innerHTML = arr[0];
+			}
+		}
+
+		function switchTheme(cmd) {
+			let themeTxt = cmd.slice(10);
+			if (themeTxt === 'random') {
+				themeTxt = randomTheme();
+			}
+			if (themes.includes(themeTxt)) {
+				setTheme(themeTxt);
+				return;
+			}
+			loopLines(
+				[
+					`Theme '${themeTxt}' not found. Try 'theme ls' to see the list of available themes.`,
+				],
+				'color margin',
+				80
+			);
+		}
+	</script>
+</body>
+
+</html>
