@@ -1,0 +1,534 @@
+<?php
+require_once $_SERVER["DOCUMENT_ROOT"] . "/template/head.php";
+require_once $_SERVER["DOCUMENT_ROOT"] . "/config.php";
+require_once $_SERVER["DOCUMENT_ROOT"] . "/common/functions.php";
+require_once $_SERVER["DOCUMENT_ROOT"] . "/common/variables.php";
+
+$remark = ["status" => true];
+$nid = null;
+$notice_role = [];
+
+function formatDate($dateStr)
+{
+    $date = DateTime::createFromFormat('j-m-Y h:i A', $dateStr);
+    return $date ? $date->format('Y-m-d H:i:s') : false;
+}
+
+function decryptRoles($roles, $key)
+{
+    $decryptedRoles = [];
+    if (is_array($roles)) {
+        foreach ($roles as $role) {
+            $decryptedRole = decryptData($role, $key);
+            if ($decryptedRole !== false) {
+                $decryptedRoles[] = $decryptedRole;
+            }
+        }
+    } elseif (is_string($roles)) {
+        $decryptedRole = decryptData($roles, $key);
+        if (!empty($decryptedRole)) {
+            $decryptedRoles[] = $decryptedRole;
+        }
+    }
+    return !empty($decryptedRoles) ? json_encode($decryptedRoles) : false;
+}
+
+function validateFields($fields)
+{
+    return array_reduce($fields, fn($carry, $field) => $carry && isset($_POST[$field]) && !empty(trim($_POST[$field])), true);
+}
+
+function fetchNotification($conn, $nid)
+{
+    $sql = "SELECT `title`, `description`, `activeTime`, `expiredTime`, `role`, `state`, `ts` FROM notification WHERE id = ?";
+    if ($stmt = $conn->prepare($sql)) {
+        $stmt->bind_param("i", $nid);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows === 1) {
+            return $result->fetch_assoc();
+        }
+    }
+    return false;
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['nid'])) {
+    $encNID = $_GET['nid'];
+    $nid = decryptData($encNID, $key);
+
+    if ($nid && filter_var($nid, FILTER_VALIDATE_INT)) {
+        $row = fetchNotification($conn, $nid);
+        if ($row) {
+            $title = htmlspecialchars($row['title']);
+            $description = $row['description'];
+            $activeTime = htmlspecialchars($row['activeTime']);
+            $expiredTime = htmlspecialchars($row['expiredTime']);
+            $notice_role = json_decode($row['role'], true);
+            $state = htmlspecialchars($row['state']);
+            $ts = htmlspecialchars($row['ts']);
+        } else {
+            header('Location: /admin-zone/notification-manager');
+            exit();
+        }
+    } else {
+        header('Location: /admin-zone/notification-manager');
+        exit();
+    }
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['notificationID'])) {
+    $notificationID = decryptData($_POST['notificationID'], $key);
+
+    if ($notificationID && filter_var($notificationID, FILTER_VALIDATE_INT)) {
+        $requiredFields = ['notificationTitle', 'quillContent', 'act-dt', 'exp-dt', 'selectState'];
+
+        $allFieldsSet = validateFields($requiredFields);
+        $activeTime = formatDate($_POST['act-dt']);
+        $expireTime = formatDate($_POST['exp-dt']);
+
+        if (!$activeTime || !$expireTime) $allFieldsSet = false;
+
+        $encRolesStr = decryptRoles($_POST['multicol-role'], $key);
+        if ($allFieldsSet && in_array($_POST['selectState'], ['active', 'deactive']) && $encRolesStr) {
+            $notificationTitle = mysqli_real_escape_string($conn, $_POST['notificationTitle']);
+            $quillContent = mysqli_real_escape_string($conn, $_POST['quillContent']);
+            $selectState = mysqli_real_escape_string($conn, $_POST['selectState']);
+
+            $sql = "UPDATE notification SET title = ?, description = ?, activeTime = ?, expiredTime = ?, state = ?, role = ?, ts = current_timestamp() WHERE id = ?";
+
+            if ($stmt = mysqli_prepare($conn, $sql)) {
+                mysqli_stmt_bind_param($stmt, "ssssssi", $notificationTitle, $quillContent, $activeTime, $expireTime, $selectState, $encRolesStr, $notificationID);
+                if (mysqli_stmt_execute($stmt) && mysqli_stmt_affected_rows($stmt) > 0) {
+                    $row = fetchNotification($conn, $notificationID);
+                    if ($row) {
+                        $nid = $notificationID;
+                        $title = htmlspecialchars($row['title']);
+                        $description = $row['description'];
+                        $activeTime = htmlspecialchars($row['activeTime']);
+                        $expiredTime = htmlspecialchars($row['expiredTime']);
+                        $notice_role = json_decode($row['role'], true);
+                        $state = htmlspecialchars($row['state']);
+                        $ts = htmlspecialchars($row['ts']);
+                        $remark = ['status' => true, 'type' => 'success', 'message' => 'Notification updated successfully'];
+                    } else {
+                        $remark = ['status' => false, 'type' => 'error', 'message' => 'Notification ID does not exist.'];
+                    }
+                } else {
+                    $remark = ['status' => false, 'type' => 'error', 'message' => 'Error executing the update.'];
+                }
+                mysqli_stmt_close($stmt);
+            }
+        }
+    }
+} elseif ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $requiredFields = ['notificationTitle', 'quillContent', 'act-dt', 'exp-dt', 'selectState'];
+
+    $allFieldsSet = validateFields($requiredFields);
+    $activeTime = formatDate($_POST['act-dt']);
+    $expireTime = formatDate($_POST['exp-dt']);
+
+    if (!$activeTime || !$expireTime) $allFieldsSet = false;
+
+    $encRolesStr = decryptRoles($_POST['multicol-role'], $key);
+    if ($allFieldsSet && in_array($_POST['selectState'], ['active', 'deactive']) && $encRolesStr) {
+        $notificationTitle = mysqli_real_escape_string($conn, $_POST['notificationTitle']);
+        $quillContent = mysqli_real_escape_string($conn, $_POST['quillContent']);
+        $selectState = mysqli_real_escape_string($conn, $_POST['selectState']);
+
+        $sql = "INSERT INTO notification (title, description, activeTime, expiredTime, state, role) VALUES (?, ?, ?, ?, ?, ?)";
+
+        if ($stmt = mysqli_prepare($conn, $sql)) {
+            mysqli_stmt_bind_param($stmt, "ssssss", $notificationTitle, $quillContent, $activeTime, $expireTime, $selectState, $encRolesStr);
+            if (mysqli_stmt_execute($stmt)) {
+                $remark = ['status' => true, 'type' => 'success', 'message' => 'Notification added successfully'];
+            }
+            mysqli_stmt_close($stmt);
+        }
+    }
+}
+
+?>
+
+<body class="spin-lock">
+    <!-- Layout wrapper -->
+    <div class="layout-wrapper layout-content-navbar">
+        <div class="layout-container">
+            <!-- Menu -->
+            <?php require_once $_SERVER["DOCUMENT_ROOT"] . "/template/side-menu.php"; ?>
+            <!-- / Menu -->
+            <!-- Layout container -->
+            <div class="layout-page">
+                <!-- Navbar --> <?php require_once $_SERVER["DOCUMENT_ROOT"] . "/template/navbar.php"; ?>
+                <!-- / Navbar -->
+                <!-- Content wrapper -->
+                <div class="content-wrapper">
+                    <?php require_once $_SERVER["DOCUMENT_ROOT"] . "/template/loadingSpinner.php"; ?>
+
+
+                    <!-- Content -->
+                    <div class="container-xxl flex-grow-1 container-p-y">
+
+                        <?php
+                        // Assuming you already have a database connection set up
+                        $query = "SELECT DISTINCT `role` FROM `users`";
+                        $result = mysqli_query($conn, $query);
+
+                        $roles = [];
+                        if ($result) {
+                            while ($row = mysqli_fetch_assoc($result)) {
+                                $roles[] = $row['role'];
+                            }
+                        }
+                        ?>
+
+                        <div class="row">
+                            <div class="col-xl">
+                                <div class="card mb-6">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="mb-0"><?php echo isset($nid) ? 'Edit' : 'Add New'; ?> Notification</h5>
+                                        <small class="text-body float-end">Fill in the details</small>
+                                        <?php echo isset($nid) ? '<small class="text-body"> Last Updated at ' . $ts . '</small>' : ''; ?>
+                                    </div>
+                                    <div class="card-body">
+                                        <form id="notificationForm" action="<?php echo pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME); ?>" method="POST" role="form" autocomplete="off">
+                                            <!-- Notification Title -->
+                                            <?php if (isset($nid)) {
+                                                echo '<input type="hidden" class="form-control" name="notificationID" value="' . $encNID . '">
+                                                <input type="hidden" class="form-control" name="updateNotice" value="true">
+                                                ';
+                                            } ?>
+                                            <div class="form-floating form-floating-outline mb-3">
+                                                <input type="text" class="form-control" id="notificationTitle" name="notificationTitle" placeholder="Notification Title" value="<?php echo isset($nid) ? $title : ''; ?>" required />
+                                                <label for="notificationTitle">Notification Title</label>
+                                            </div>
+
+                                            <!-- Notification Message -->
+                                            <div class="form-floating form-floating-outline mb-4">
+                                                <h6 class="mb-2 text-muted">Notification Description</h6>
+                                                <div id="full-editor" required>
+                                                    <?php echo isset($nid) ? str_replace('\"', '"', htmlspecialchars_decode($description)) : ''; ?>
+                                                </div>
+                                                <input type="hidden" class="form-control" id="demo" name="demo" value="<?php echo isset($nid) ? htmlspecialchars($description) : ''; ?>">
+                                            </div>
+
+                                            <!-- Active Time and Expire Time -->
+                                            <div class="row">
+                                                <div class="col-md-6 mb-4">
+                                                    <div class="form-floating form-floating-outline">
+                                                        <input type="text" class="form-control" placeholder="Select active time" id="act-dt" name="act-dt" value="<?php echo isset($nid) ? (new DateTime($activeTime))->format('j-m-Y h:i A') : ''; ?>" required />
+                                                        <label for="act-dt">Active Time</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-4">
+                                                    <div class="form-floating form-floating-outline">
+                                                        <input type="text" class="form-control" placeholder="Select expire time" id="exp-dt" name="exp-dt" value="<?php echo isset($nid) ? (new DateTime($expiredTime))->format('j-m-Y h:i A') : ''; ?>" required />
+                                                        <label for="exp-dt">Expire Time</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Select Group (Role) and Status -->
+                                            <div class="row">
+                                                <div class="col-md-6 select2-primary mb-4">
+                                                    <div class="form-floating form-floating-outline">
+                                                        <select id="multicol-role" name="multicol-role[]" class="select2 form-select" multiple required>
+                                                            <?php foreach ($roles as $role): ?>
+                                                                <option
+                                                                    value="<?= encryptData($role, $key); ?>"
+                                                                    <?php if (isset($nid)) {
+                                                                        if (in_array($role, $notice_role)) {
+                                                                            echo "selected";
+                                                                        }
+                                                                    } ?>>
+                                                                    <?= ucfirst(htmlspecialchars($role)); ?>
+                                                                </option>
+                                                            <?php endforeach; ?>
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-6 mb-4">
+                                                    <div class="form-floating form-floating-outline">
+                                                        <select id="selectState" name="selectState" class="select2 form-select form-select-lg" data-allow-clear="true" required>
+                                                            <option value="active">Active</option>
+                                                            <option value="deactive">Deactive</option>
+                                                        </select>
+                                                        <label for="selectState">Notification State</label>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex justify-content-end mb-3">
+                                                <?php
+                                                if (isset($nid)) {
+                                                    echo '<button type="button" class="btn btn-outline-secondary me-2" onclick="window.location.href=\'/admin-zone/all-notice\';">Cancel</button>';
+                                                    echo '<button type="submit" class="btn btn-primary">Update Notice</button>';
+                                                } else {
+                                                    echo '<button type="button" id="rst-btn" class="btn btn-outline-secondary me-2" onclick="resetForm()">Reset</button>';
+                                                    echo '<button type="submit" class="btn btn-primary">Save Notice</button>';
+                                                }
+                                                ?>
+                                            </div>
+                                        </form>
+
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+
+
+                        <?php
+                        require_once($_SERVER['DOCUMENT_ROOT'] . '/template/toast.php');
+                        require_once($_SERVER['DOCUMENT_ROOT'] . '/template/modal.php');
+                        captchaModal();
+                        ?>
+
+                    </div>
+                    <!-- / Content -->
+
+                    <!-- Footer -->
+                    <?php
+                    require_once($_SERVER['DOCUMENT_ROOT'] . '/template/footer.php');
+                    ?>
+                    <!-- / Footer -->
+                    <div class="content-backdrop fade"></div>
+                </div>
+                <!-- Content wrapper -->
+            </div>
+            <!-- / Layout page -->
+        </div>
+        <!-- Overlay -->
+        <div class="layout-overlay layout-menu-toggle"></div>
+        <!-- Drag Target Area To SlideIn Menu On Small Screens -->
+        <div class="drag-target"></div>
+    </div>
+    <!-- / Layout wrapper -->
+    <!-- scripts -->
+    <?php require_once $_SERVER["DOCUMENT_ROOT"] . "/template/scripts-section.php"; ?>
+
+    <?php
+    echo '<script type="text/javascript">let selected_state = "' . $state . '";</script>';
+    if (isset($encNID)) {
+        echo '<script type="text/javascript">history.replaceState(null, "", "/admin-zone/notification-manager?nid=' . $encNID . '");</script>';
+    }
+    ?>
+
+    <script>
+        const demoInput = document.getElementById('demo');
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('notificationForm');
+            const quill = new Quill("#full-editor", {
+                bounds: "#full-editor",
+                placeholder: "Type notification description......",
+                modules: {
+                    formula: true,
+                    toolbar: [
+                        [{
+                            font: []
+                        }, {
+                            size: []
+                        }],
+                        ["bold", "italic", "underline", "strike"],
+                        [{
+                            color: []
+                        }, {
+                            background: []
+                        }],
+                        [{
+                            script: "super"
+                        }, {
+                            script: "sub"
+                        }],
+                        [{
+                            header: "1"
+                        }, {
+                            header: "2"
+                        }, "blockquote", "code-block"],
+                        [{
+                            list: "ordered"
+                        }, {
+                            list: "bullet"
+                        }, {
+                            indent: "-1"
+                        }, {
+                            indent: "+1"
+                        }],
+                        [{
+                            direction: "rtl"
+                        }],
+                        ["link", "formula", "image"], // Removed "image" and "video" options
+                        ["clean"]
+                    ]
+                },
+                theme: "snow"
+            });
+
+            const selectRole = $('#multicol-role');
+            if (selectRole.length) {
+                selectRole.wrap('<div class="position-relative"></div>').select2({
+                    placeholder: "Select Intended Group (Role)",
+                    dropdownParent: selectRole.parent(),
+                    multiple: true
+                });
+            }
+
+            $("#selectState").select2({
+                placeholder: "Select Notification State",
+                dropdownParent: $("#selectState").parent(),
+                minimumResultsForSearch: Infinity
+            });
+
+            const activeTime = document.getElementById('act-dt');
+            flatpickr(activeTime, {
+                enableTime: true,
+                monthSelectorType: "static",
+                dateFormat: "j-m-Y h:i K",
+                minDate: "today",
+                time_24hr: false
+            });
+
+            const expireTime = document.getElementById('exp-dt');
+            flatpickr(expireTime, {
+                enableTime: true,
+                monthSelectorType: "static",
+                dateFormat: "j-m-Y h:i K",
+                minDate: "today",
+                time_24hr: false
+            });
+
+            // Function to reset the form
+            function resetForm() {
+                // Reset the form fields
+                form.reset();
+
+                // Clear the Quill editor content
+                quill.setContents([]); // Clear editor content
+
+                // Reset the select2 elements
+                $('#multicol-role').val('').trigger('change'); // Clear multiple select2
+                $('#selectState').val('').trigger('change'); // Clear single select2
+            }
+
+            $('#selectState').val('').trigger('change');
+
+            if (selected_state != null) {
+                $('#selectState').val(selected_state).trigger('change');
+            }
+
+            let quillContent = null;
+
+            quill.on('text-change', function() {
+                quillContent = document.getElementsByClassName("ql-editor")[0].innerHTML;
+                demoInput.value = quillContent.replace(/(<([^>]+)>)/gi, "").replace(/[^\w\s]/gi, "").trim();
+            });
+
+            const formValidationInstance = FormValidation.formValidation(
+                form, {
+                    fields: {
+                        notificationTitle: {
+                            validators: {
+                                notEmpty: {
+                                    message: 'The notification title is required'
+                                }
+                            }
+                        },
+                        'act-dt': {
+                            validators: {
+                                notEmpty: {
+                                    message: 'Active time is required'
+                                },
+                                date: {
+                                    format: 'DD-MM-YYYY h:mm A',
+                                    message: 'The value is not a valid date'
+                                }
+                            }
+                        },
+                        'exp-dt': {
+                            validators: {
+                                notEmpty: {
+                                    message: 'Expire time is required'
+                                },
+                                date: {
+                                    format: 'DD-MM-YYYY h:mm A',
+                                    message: 'The value is not a valid date'
+                                }
+                            }
+                        },
+                        'multicol-role': {
+                            validators: {
+                                notEmpty: {
+                                    message: 'Please select at least one role'
+                                }
+                            }
+                        },
+                        selectState: {
+                            validators: {
+                                notEmpty: {
+                                    message: 'Please select a notification state'
+                                }
+                            }
+                        },
+                        demo: {
+                            validators: {
+                                notEmpty: {
+                                    message: 'The notification description is required'
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        trigger: new FormValidation.plugins.Trigger(),
+                        bootstrap5: new FormValidation.plugins.Bootstrap5({
+                            rowSelector: '.form-floating',
+                            eleValidClass: ''
+                        }),
+                        submitButton: new FormValidation.plugins.SubmitButton(),
+                        autoFocus: new FormValidation.plugins.AutoFocus(),
+                        defaultSubmit: new FormValidation.plugins.DefaultSubmit()
+                    }
+                }
+            );
+
+            formValidationInstance.on('core.form.valid', function() {
+                showSpinner();
+
+                var form = document.querySelector('form');
+                var formData = new FormData(form);
+                formData.delete('demo');
+
+                var hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = 'quillContent';
+                hiddenInput.value = document.getElementsByClassName("ql-editor")[0].innerHTML;
+
+                form.appendChild(hiddenInput);
+
+                form.submit();
+            });
+        });
+    </script>
+
+
+    <!-- / scripts -->
+    <?php
+    if ($remark['status'] && isset($remark['type']) && isset($remark['message'])) {
+        if ($remark['type'] === 'success') {
+            echo "<script type='text/javascript'>showToast(5000, 'mdi-check-circle', 'animate__shakeX', 'text-success', 'Successful!!','" . $remark['message'] . "');</script>";
+        } elseif ($remark['type'] === 'error') {
+            echo "<script type='text/javascript'>showToast(5000, 'mdi-alert-circle', 'animate__shakeX', 'text-danger', 'Error!!','" . $remark['message'] . " Please try again');</script>";
+        }
+    }
+    // elseif (isset($remark['message']) && isset($remark['type'])) {
+    // echo "<script type='text/javascript'>showToast(5000, 'mdi-alert-circle', 'animate__shakeX', 'text-danger', 'Error!!','" . $remark['message'] . " please try again');</script>";
+    // } elseif ($remark['status'] && isset($remark['message'])) {
+    // echo "<script type='text/javascript'>showToast(5000, 'mdi-check-circle', 'animate__shakeX', 'text-success', 'Center Name Updated Successfully','" . $remark['message'] . "');</script>";
+    // } elseif (isset($remark['message'])) {
+    // echo "<script type='text/javascript'>showToast(5000, 'mdi-alert-circle', 'animate__shakeX', 'text-danger', 'Incomplete Center Details!!','" . $remark['message'] . " and try again');</script>";
+    // }
+    ?>
+
+</body>
+
+</html>

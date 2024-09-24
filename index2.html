@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0, shrink-to-fit=no" />
+  
+    <!-- Recommended Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="no-referrer">
+    <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains">
+    <meta http-equiv="Access-Control-Allow-Methods" content="GET">
+    <meta http-equiv="Feature-Policy" content="geolocation 'none'; midi 'none'; camera 'none'; usb 'none'">
+  
+    <title>CDAC-K CTF Challenge</title>
+  
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="/assets/img/favicon.ico" />
+  <style>
+    body {
+      background: black;
+      margin: 0;
+      padding: 0;
+      overflow: hidden; /* Prevent scrollbars from appearing */
+      font-family: monospace;
+    }
+
+    .watermark {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      opacity: 0.1; /* Adjust opacity as needed */
+      pointer-events: none; /* Ensure it doesn't interfere with user interactions */
+      z-index: 1000; /* Place the watermark above other content */
+    }
+
+    .watermark img {
+      max-width: 100%;
+      max-height: 100%;
+      display: block;
+    }
+
+    span {
+      color: #5dea62;
+      font-family: Monaco, monospace;
+    }
+
+    .blinker {
+      opacity: 1;
+      margin-bottom: -2px;
+      height: 15px;
+      margin-left: -5px;
+      border-left: 7px solid #5dea62;
+      animation: blinker 0.9s steps(2, start) infinite;
+    }
+
+    @keyframes blinker {
+      to { 
+        visibility: hidden; 
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="watermark">
+    <img src="/assets/img//CDAC-CTF.png" alt="Watermark">
+  </div>
+
+  <span id="AboutDevTypeText" class="typeing"></span><span class='blinker'>&#32;</span>
+
+  <script>
+    var data = [
+      {
+        AboutDevTypeText: "<span style='font-size: 28px;'>Welcome to CDAC CTF</span><br/><br/><span style='font-size: 20px;'>&gt; Thank you for showing interest. The registration period has ended.<br/>&gt; All practice questions will be removed and new competition questions will be added.<br/>&gt; To facilitate this update, all user accounts will be temporarily deactivated.<br/>&gt; Please note that your accounts will be automatically reactivated 1 hour before the competition begins.<br/>&gt; The competition will be held on 9th August, 2024 from 11:00 AM to 04:00 PM.<br/>&gt; Wish you the best of luck!<br/>&gt; For any queries please send an email to <a href=\"mailto:ctf-kol@cdac.in\" style=\"color: #5dea62;\"><u>ctf-kol@cdac.in</u></a>&nbsp;</span>"
+      }
+    ];
+
+    var allElements = document.getElementsByClassName("typeing");
+    for (var j = 0; j < allElements.length; j++) {
+      var currentElementId = allElements[j].id;
+      var currentElementIdContent = data[0][currentElementId];
+      var element = document.getElementById(currentElementId);
+      var devTypeText = currentElementIdContent;
+
+      // type code
+      var i = 0, isTag, text;
+      (function type() {
+        text = devTypeText.slice(0, ++i);
+        if (text === devTypeText) return;
+        element.innerHTML = text + `<span class='blinker'>&#32;</span>`;
+        var char = text.slice(-1);
+        if (char === "<") isTag = true;
+        if (char === ">") isTag = false;
+        if (isTag) return type();
+        setTimeout(type, 45);
+      })();
+    }
+  </script>
+</body>
+</html>

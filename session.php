@@ -1,75 +1,151 @@
 <?php
-    include 'config.php';
-    
-    function sanitizeInputS($val) {
-        include 'config.php';
-        $sprey1 = mysqli_real_escape_string($conn,$val);
-        $sprey2 = filter_var ($sprey1, FILTER_SANITIZE_STRING);
-        $sprey3 = strip_tags($sprey2);
-        $sprey4 = htmlspecialchars($sprey3);
-        $sprey5 = trim($sprey4," ");
-        return $sprey5;
-    }
 
-    session_start();
+if ($_SERVER['REQUEST_METHOD'] == 'GET' && realpath(__FILE__) == realpath($_SERVER['SCRIPT_FILENAME'])) {
+    http_response_code(404);
+    include($_SERVER["DOCUMENT_ROOT"] . "/404.html");
+    exit();
+}
 
-    // $user_check = $_SESSION['login_user'];
-    $user_check = sanitizeInputS($_SESSION['login_user']);
+session_name("secure_session");
 
-    // $ses_sql = mysqli_query($conn,"select id, email, name, status, role from users where email = '$user_check'");
-    // $row = mysqli_fetch_array($ses_sql, MYSQLI_ASSOC);
+$page = pathinfo($_SERVER['PHP_SELF'], PATHINFO_FILENAME);
 
 
-    try{
-        $sql = "select id, email, name, status, role from users where email = ?";
-        $stmt = $conn->prepare($sql); 
-        $stmt->bind_param("s", $user_check);
-        $stmt->execute();
-        $result = $stmt->get_result();
-    } catch(Exception $e){
-        if ($debug_mode == true){
-            // echo $e;
-            die('debug: '.$e);
-        }
-        else{
-            echo 'error';
+// Check if HTTPS is being used
+$https = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on';
+
+// Start session with appropriate cookie settings
+session_start([
+    'cookie_lifetime' => 0,
+    'cookie_httponly' => $https,
+    'cookie_secure' => $https, // Set to true if HTTPS is being used
+    'cookie_samesite' => 'Lax',
+]);
+
+
+$session_timeout = 3600; // Session Timeout for inactivity
+
+
+if (isset($_SESSION['username']) && isset($_SESSION['email']) && isset($_SESSION['uid']) && isset($_SESSION['role']) && isset($_SESSION['tshash']) && isset($_SESSION['displaypic']) && isset($_SESSION['auth'])) {
+    $_loginInfo = array(
+        'username' => $_SESSION['username'],
+        'email' => $_SESSION['email'],
+        'uid' => $_SESSION['uid'],
+        'role' => ucwords($_SESSION['role']),
+        'tshash' => $_SESSION['tshash'],
+        'displaypic' => $_SESSION['displaypic'],
+        'profession' => $_SESSION['profession'],
+        'designation' => $_SESSION['designation'],
+        'location' => $_SESSION['location'],
+        'phone' => $_SESSION['phone'],
+        'auth' => $_SESSION['auth'],
+        'baseFolder' => ($_SESSION['role'] == 'Admin') ? 'admin-zone' : 'user-zone'
+    );
+} else {
+    $_loginInfo = false;
+}
+
+
+function setCustomSession($username, $email, $uid, $role, $tshash, $profession, $designation, $location, $phone, $displaypic, $auth)
+{
+    global $_loginInfo;
+    // Set session values
+    $_SESSION['username'] = $username;
+    $_SESSION['email'] = $email;
+    $_SESSION['uid'] = $uid;
+    $_SESSION['role'] = ucwords($role);
+    $_SESSION['tshash'] = $tshash;
+    $_SESSION['displaypic'] = $displaypic;
+    $_SESSION['profession'] = $profession;
+    $_SESSION['designation'] = $designation;
+    $_SESSION['location'] = $location;
+    $_SESSION['phone'] = $phone;
+    $_SESSION['auth'] = $auth;
+    $_SESSION['agent'] = $_SERVER['HTTP_USER_AGENT'];
+    $_SESSION['last_activity'] = time();
+    $_loginInfo = array(
+        'username' => $_SESSION['username'],
+        'email' => $_SESSION['email'],
+        'uid' => $_SESSION['uid'],
+        'role' => ucwords($_SESSION['role']),
+        'tshash' => $_SESSION['tshash'],
+        'displaypic' => $_SESSION['displaypic'],
+        'profession' => $_SESSION['profession'],
+        'designation' => $_SESSION['designation'],
+        'location' => $_SESSION['location'],
+        'phone' => $_SESSION['phone'],
+        'auth' => $_SESSION['auth'],
+        'baseFolder' => ($_SESSION['role'] == 'Admin') ? 'admin-zone' : 'user-zone'
+    );
+    return true;
+}
+
+// && $_SESSION['agent'] !== $_SERVER['HTTP_USER_AGENT']
+
+if (isset($_SESSION['auth'])) {
+    if (isset($_SESSION['last_activity'])) {
+        $inactive_time = time() - $_SESSION['last_activity'];
+        if ($inactive_time > $session_timeout) {
+            // Unset all session values
+            $_SESSION = array();
+            $_loginInfo = array();
+
+            // Destroy the session cookie
+            if (ini_get("session.use_cookies")) {
+                $params = session_get_cookie_params();
+                setcookie(
+                    session_name(),
+                    '',
+                    time() - 42000,
+                    $params["path"],
+                    $params["domain"],
+                    $params["secure"],
+                    $params["httponly"]
+                );
+            }
+
+            // Destroy the session
+            session_destroy();
+
+            $conn->close();
+
+            header("Location: /");
             die();
         }
     }
-    $row = $result->fetch_assoc();
+    session_regenerate_id();
 
-
-    $login_session = $row['email'];
-    $login_username = $row['name'];
-    $login_user_id = $row['id'];
-
-    if (isset($_SESSION['login_user'])) {
-        if ($row['role'] == 'user') {
-            if ($row['status'] == 'true') {
-            } else {
-                session_start();
-                if (session_destroy()) {
-                    header('Location: success.php?p=not_active');
-                    die();
-                }
-            }
-        } elseif ($row['role'] == 'admin') {
-            if ($row['status'] == 'true') {
-                header('Location: admin.php');
-                die();
-            } else {
-                session_start();
-                if (session_destroy()) {
-                    header('Location: success.php?p=not_active');
-                    die();
-                }
-            }
-        } else {
-            header('Location: login.php');
-            die();
-        }
+    if ($_SESSION['agent'] === $_SERVER['HTTP_USER_AGENT']) {
     } else {
-        header('Location: login.php');
+        require_once $_SERVER["DOCUMENT_ROOT"] . "/config.php";
+        require_once $_SERVER["DOCUMENT_ROOT"] . "/common/functions.php";
+
+        insertLog($conn, $_SESSION['uid'], 'Login attempted with cookie');
+
+        // Unset all session values
+        $_SESSION = array();
+        $_loginInfo = array();
+
+        // Destroy the session cookie
+        if (ini_get("session.use_cookies")) {
+            $params = session_get_cookie_params();
+            setcookie(
+                session_name(),
+                '',
+                time() - 42000,
+                $params["path"],
+                $params["domain"],
+                $params["secure"],
+                $params["httponly"]
+            );
+        }
+
+        // Destroy the session
+        session_destroy();
+
+        $conn->close();
+
+        header("Location: /");
         die();
     }
-?>
+}

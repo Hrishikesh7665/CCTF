@@ -1,0 +1,464 @@
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+	-webkit-appearance: none !important;
+	-moz-appearance: none !important;
+	appearance: none !important;
+	margin: 0 !important;
+}
+
+.notificationBell.flash_notification:after {
+	content: "";
+	position: absolute;
+	top: 4px;
+	right: 10px;
+	width: 6px;
+	height: 6px;
+	border-radius: 100%;
+	box-shadow: 0 0 0 2px #fff;
+	background-color: #ff4c51
+}
+
+.notificationBell.flash_notification {
+	line-height: 1.4;
+	animation: flash 1s infinite;
+}
+
+@keyframes flash {
+	0% {
+		opacity: 1;
+	}
+
+	50% {
+		opacity: 0;
+	}
+
+	100% {
+		opacity: 1;
+	}
+}
+
+@media (max-width: 768px) {
+    .notificationBell.flash_notification:after {
+        top: 17px;
+        right: 92.5px;
+    }
+}
+
+
+.custom-link .default-text {
+	font-size: 14px !important;
+	transition: color 0.3s ease;
+}
+
+.custom-link:hover .default-text {
+	display: none;
+}
+
+.custom-link:hover::after {
+	content: "Visit on GitHub. It's Open Source";
+	font-size: 14px;
+	transition: color 0.3s ease;
+}
+
+html {
+	-webkit-user-select: none;
+	/* Safari */
+	-moz-user-select: none;
+	/* Firefox */
+	-ms-user-select: none;
+	/* IE10+/Edge */
+	user-select: none;
+	/* Standard syntax */
+}
+
+#spinner-overlay {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: rgba(0, 0, 0, 0.75);
+	z-index: 9999;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+}
+
+body.spin-lock {
+	overflow: hidden;
+}
+
+.pointer {
+	cursor: pointer;
+}
+
+.ctf-org-name {
+	text-align: center;
+	width: 99%;
+	margin-top: 10%;
+	font-family: 'Playfair Display', serif;
+	font-weight: bold;
+}
+
+.logo-container {
+	justify-content: center;
+	text-align: center;
+	width: 99%;
+	margin-bottom: 15px;
+	margin-top: 5%;
+}
+
+.logo-container img {
+	height: 105px;
+	width: 180px;
+	/* border-radius: 50%; */
+	/* border: 2px solid #333; */
+}
+
+.ctf-username {
+	display: block;
+	text-align: center;
+	width: 99%;
+}
+
+.score {
+	display: flex;
+	flex-direction: column;
+	width: 99%;
+}
+
+.score h1 {
+	display: block;
+	text-align: center;
+	color: #ffae00;
+	font-size: 3em;
+	margin-top: 15px;
+}
+
+.score h1:after {
+	content: 'Score';
+	display: block;
+	font-size: 0.5em;
+}
+
+.status {
+	display: flex;
+	flex-direction: row;
+	margin-left: auto;
+	margin-right: auto;
+	padding: 0;
+	width: 99%;
+	margin-top: 10%
+}
+
+.status .col {
+	width: 60%;
+	padding: 10px;
+	display: flex;
+	flex-direction: column;
+}
+
+.status .col {
+	flex: 1;
+	text-align: center;
+	padding: 10px;
+	border: 1.5px solid;
+	border-radius: 5px;
+	margin: 0 10px;
+}
+
+
+.status .col h3 {
+	text-align: center;
+	color: green;
+	margin: 10px 10px 10px 10px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding: 0;
+	font-size: 1.5em;
+}
+
+.status .col p {
+	text-align: center;
+	/* color: #575757; */
+	margin: 0px 10px 10px 10px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding: 0;
+}
+
+/* countdown */
+.flex-c,
+.flex-col-c-m,
+.flex-w {
+	display: -webkit-box;
+	display: -webkit-flex;
+	display: -moz-box;
+	display: -ms-flexbox;
+	display: flex;
+}
+
+.flex-w {
+	-webkit-flex-wrap: wrap;
+	-moz-flex-wrap: wrap;
+	-ms-flex-wrap: wrap;
+	-o-flex-wrap: wrap;
+	flex-wrap: wrap;
+}
+
+.flex-c {
+	justify-content: center;
+}
+
+.hsize1 {
+	min-height: 230px;
+}
+
+.flex-col-c-m {
+	-ms-align-items: center;
+	align-items: center;
+	justify-content: center;
+}
+
+.flex-col-c-m {
+	-webkit-flex-direction: column;
+	-moz-flex-direction: column;
+	-ms-flex-direction: column;
+	-o-flex-direction: column;
+	flex-direction: column;
+}
+
+.size2 {
+	width: 90px;
+	height: 100px;
+}
+
+.how-countdown {
+	background-color: #333333;
+	border-radius: 10px;
+	margin: 0px 18px 25px 18px;
+}
+
+.l1-txt1 {
+	font-family: Barlow-Medium;
+	font-size: 40px;
+	line-height: 1;
+	color: #fff;
+}
+
+.p-b-9 {
+	padding-bottom: 9px;
+}
+
+.s1-txt1 {
+	font-family: Barlow-Regular;
+	font-size: 14px;
+	color: #fff;
+	line-height: 1;
+}
+
+.txt-center {
+	text-align: center;
+}
+
+.m1-txt1 {
+	font-family: Barlow-Bold;
+	font-size: 30px;
+	line-height: 1.2;
+}
+
+.p-t-33 {
+	padding-top: 130px;
+}
+
+.p-b-68 {
+	padding-bottom: 30px;
+}
+
+.underline:after {
+	display: block;
+	margin: 10px 0 10px 0;
+	content: '';
+	width: 30px;
+	height: 3px;
+	background-color: #099e10;
+}
+
+.underline2:after {
+	display: block;
+	margin: 10px 0 10px 0;
+	content: '';
+	width: 60px;
+	height: 3.5px;
+	background-color: #099e10;
+}
+
+.zoom {
+	transition: transform .2s;
+	cursor: pointer;
+}
+
+.zoom:hover {
+	-ms-transform: scale(1.05);
+	-webkit-transform: scale(1.05);
+	transform: scale(1.05);
+}
+
+.p-divider {
+	padding: 10px 10px 10px 10px;
+	margin: 0px 0px 10px 0px;
+	text-align: center;
+	font-size: 1em;
+	border-bottom: 1px solid #e6e6e6;
+}
+
+.solved {
+	color: var(--bs-success);
+	font-weight: bold;
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.solved:before {
+	content: url("/assets/img/checked.png");
+	margin-right: 5px;
+	vertical-align: -2px;
+}
+
+.custom-close-btn {
+	background-color: lightcoral !important;
+	border: none !important;
+	border-radius: 4px !important;
+	width: 15px !important;
+	height: 15px !important;
+	color: white !important;
+	display: flex !important;
+	justify-content: center !important;
+	align-items: center !important;
+	font-size: 18px !important;
+	cursor: pointer !important;
+	transition: background-color 0.3s ease !important;
+}
+
+.custom-close-btn:hover {
+	background-color: red !important;
+}
+
+
+#drawing_canvas {
+	position: absolute;
+	/* margin: auto; */
+	width: 95vw;
+	/* height: 100% !important; */
+	top: 0;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	z-index: -1;
+}
+
+.light-style .menu .app-brand.demo {
+	height: 64px;
+}
+
+.dark-style .menu .app-brand.demo {
+	height: 64px;
+}
+
+.app-brand-logo.demo svg {
+	width: 30px;
+	height: 24px;
+}
+
+.app-brand-text.demo {
+	font-size: 1.25rem;
+}
+
+/* ! For .layout-navbar-fixed added fix padding top tpo .layout-page */
+.layout-navbar-fixed .layout-wrapper:not(.layout-without-menu) .layout-page {
+	padding-top: 64px !important;
+}
+
+/* Navbar page z-index issue solution */
+.content-wrapper .navbar {
+	z-index: auto;
+}
+
+.demo-blocks>* {
+	display: block !important;
+}
+
+.demo-inline-spacing>* {
+	margin: 1rem 0.375rem 0 0 !important;
+}
+
+/* ? .demo-vertical-spacing class is used to have vertical margins between elements. To remove margin-top from the first-child, use .demo-only-element class with .demo-vertical-spacing class. For example, we have used this class in forms-input-groups.html file. */
+.demo-vertical-spacing>* {
+	margin-top: 1.25rem !important;
+	margin-bottom: 0 !important;
+}
+
+.demo-vertical-spacing.demo-only-element> :first-child {
+	margin-top: 0 !important;
+}
+
+.demo-vertical-spacing-lg>* {
+	margin-top: 1.875rem !important;
+	margin-bottom: 0 !important;
+}
+
+.demo-vertical-spacing-lg.demo-only-element> :first-child {
+	margin-top: 0 !important;
+}
+
+.demo-vertical-spacing-xl>* {
+	margin-top: 5rem !important;
+	margin-bottom: 0 !important;
+}
+
+.demo-vertical-spacing-xl.demo-only-element> :first-child {
+	margin-top: 0 !important;
+}
+
+.rtl-only {
+	display: none !important;
+	text-align: left !important;
+	direction: ltr !important;
+}
+
+[dir='rtl'] .rtl-only {
+	display: block !important;
+}
+
+/* Dropdown buttons going out of small screens */
+@media (max-width: 576px) {
+	#dropdown-variation-demo .btn-group .text-truncate {
+		width: 300px;
+		position: relative;
+	}
+
+	#dropdown-variation-demo .btn-group .text-truncate::after {
+		position: absolute;
+		top: 45%;
+		right: 0.65rem;
+	}
+}
+
+.layout-demo-wrapper {
+	display: -ms-flexbox;
+	display: flex;
+	-ms-flex-align: center;
+	align-items: center;
+	-ms-flex-direction: column;
+	flex-direction: column;
+	margin-top: 1.25rem;
+}
+
+.layout-demo-placeholder img {
+	width: 900px;
+}
+
+.layout-demo-info {
+	text-align: center;
+	margin-top: 1.25rem;
+}
